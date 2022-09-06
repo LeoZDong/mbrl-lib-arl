@@ -172,6 +172,7 @@ def train(
     )
     updates_made = 0
     env_steps = 0
+    logger.env_steps = env_steps
     model_env = mbrl.models.ModelEnv(
         env, dynamics_model, termination_fn, None, generator=torch_generator
     )
@@ -235,7 +236,7 @@ def train(
                     )
 
             # --------------- Agent Training -----------------
-            for _ in range(cfg.overrides.num_sac_updates_per_step):
+            for i in range(cfg.overrides.num_sac_updates_per_step):
                 use_real_data = rng.random() < cfg.algorithm.real_data_ratio
                 which_buffer = replay_buffer if use_real_data else sac_buffer
                 if (env_steps + 1) % cfg.overrides.sac_updates_every_steps != 0 or len(
@@ -243,12 +244,16 @@ def train(
                 ) < cfg.overrides.sac_batch_size:
                     break  # only update every once in a while
 
+                log_tb = (i == cfg.overrides.num_sac_updates_per_step - 1) and (
+                    env_steps + 1
+                ) % cfg.overrides.log_tb_frequency_agent == 0
                 agent.sac_agent.update_parameters(
                     which_buffer,
                     cfg.overrides.sac_batch_size,
                     updates_made,
                     logger,
                     reverse_mask=True,
+                    log_tb=log_tb,
                 )
                 updates_made += 1
                 if not silent and updates_made % cfg.log_frequency_agent == 0:
@@ -268,6 +273,11 @@ def train(
                         "rollout_length": rollout_length,
                     },
                 )
+                logger.log_tb(value=avg_reward, group_name="eval", key="episode_reward")
+                logger.log_tb(
+                    value=rollout_length, group_name="eval", key="rollout_length"
+                )
+
                 if avg_reward > best_eval_reward:
                     video_recorder.save(f"{epoch}.mp4")
                     best_eval_reward = avg_reward
@@ -278,4 +288,5 @@ def train(
 
             env_steps += 1
             obs = next_obs
+            logger.env_steps = env_steps
     return np.float32(best_eval_reward)

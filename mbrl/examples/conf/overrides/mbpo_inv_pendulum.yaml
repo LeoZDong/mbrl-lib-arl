@@ -2,6 +2,8 @@
 env: "gym___InvertedPendulum-v2"
 term_fn: "inverted_pendulum"
 
+log_tb_frequency_agent: 10
+
 num_steps: 20000
 epoch_length: 250
 num_elites: 5

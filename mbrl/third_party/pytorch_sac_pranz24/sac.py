@@ -74,7 +74,13 @@ class SAC(object):
         return action.detach().cpu().numpy()[0]
 
     def update_parameters(
-        self, memory, batch_size, updates, logger=None, reverse_mask=False
+        self,
+        memory,
+        batch_size,
+        updates,
+        logger=None,
+        reverse_mask=False,
+        log_tb=False,
     ):
         # Sample a batch from memory
         (
@@ -162,6 +168,16 @@ class SAC(object):
             logger.log("train_actor/entropy", -log_pi.mean(), updates)
             logger.log("train_alpha/loss", alpha_loss, updates)
             logger.log("train_alpha/value", self.alpha, updates)
+
+            if log_tb:
+                logger.log_tb(
+                    value=reward_batch.mean(), group_and_key="train/batch_reward"
+                )
+                logger.log_tb(value=qf_loss, group_and_key="train_critic/loss")
+                logger.log_tb(value=policy_loss, group_and_key="train_actor/loss")
+                logger.log_tb(value=-log_pi.mean(), group_and_key="train_actor/entropy")
+                logger.log_tb(value=alpha_loss, group_and_key="train_alpha/loss")
+                logger.log_tb(value=self.alpha, group_and_key="train_alpha/value")
 
         return (
             qf1_loss.item(),

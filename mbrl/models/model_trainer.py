@@ -211,6 +211,22 @@ class ModelTrainer:
             self._maybe_set_best_weights_and_elite(best_weights, best_val_score)
 
         self._train_iteration += 1
+
+        # Log final validation scores to tensorboard
+        if self.logger and not silent:
+            self.logger.log_tb(
+                value=best_val_score.mean(),
+                group_name="model_train",
+                key="model_best_val_score",
+            )
+
+            # Model loss of the *last* epoch
+            self.logger.log_tb(
+                value=total_avg_loss,
+                group_name="model_train",
+                key="model_loss",
+            )
+
         return training_losses, val_scores
 
     def evaluate(

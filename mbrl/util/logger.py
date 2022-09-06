@@ -5,10 +5,11 @@
 import collections
 import csv
 import pathlib
-from typing import Counter, Dict, List, Mapping, Tuple, Union
+from typing import Counter, Dict, List, Mapping, Optional, Tuple, Union
 
 import termcolor
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 LogFormatType = List[Tuple[str, str, str]]
 LogTypes = Union[int, float, torch.Tensor]
@@ -129,6 +130,13 @@ class Logger(object):
             self.register_group("train", SAC_TRAIN_LOG_FORMAT)
             self.register_group("eval", EVAL_LOG_FORMAT, color="green")
 
+        # Initialize tensorboard summary writer
+        self._tb_writer = SummaryWriter(self._log_dir)
+
+        # Keep track of global environment steps. This variable is expected to be updated
+        # in the main training loop.
+        self.env_steps = None
+
     def register_group(
         self,
         group_name: str,
@@ -214,6 +222,23 @@ class Logger(object):
 
         meter_group, *_ = self._groups[group_name]
         meter_group.log(key, value)
+
+    def log_tb(
+        self,
+        value: LogTypes,
+        group_name: Optional[str] = None,
+        key: Optional[str] = None,
+        group_and_key: Optional[str] = None,
+    ):
+        """Log a metric into tensorboard. Metric group name and key (i.e. tag) can be
+        either specified individually or separately.
+        """
+        if group_and_key is not None:
+            group_name, key = self._split_group_and_key(group_and_key)
+
+        self._tb_writer.add_scalar(
+            tag=f"{group_name}/{key}", scalar_value=value, global_step=self.env_steps
+        )
 
     def dump(self, step, save=True):
         for group_name in ["train", "eval"]:

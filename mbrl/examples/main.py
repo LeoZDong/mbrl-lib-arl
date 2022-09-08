@@ -21,6 +21,13 @@ def run(cfg: omegaconf.DictConfig):
     if cfg.algorithm.name == "pets":
         return pets.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "mbpo":
+        # When creating the eval env, change the stage tag to be 'eval' in the string
+        # description of the environment.
+        if "env" in cfg.overrides.keys() and "earl___" in cfg.overrides.env:
+            env_type, name = cfg.overrides.env.split("___")
+            env_name, _ = name.split("--")
+            cfg.overrides.env = "___".join([env_type, "--".join([env_name, "eval"])])
+
         test_env, *_ = mbrl.util.env.EnvHandler.make_env(cfg)
         return mbpo.train(env, test_env, term_fn, cfg)
     if cfg.algorithm.name == "planet":

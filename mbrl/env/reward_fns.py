@@ -51,3 +51,7 @@ def pusher(act: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
     act_cost = 0.1 * (act**2).sum(axis=1)
 
     return -(obs_cost + act_cost).view(-1, 1)
+
+
+def tabletop_manipulation(act: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+    return (termination_fns.tabletop_manipulation(act, next_obs)).float()

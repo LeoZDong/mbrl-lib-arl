@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 import math
 
+import numpy as np
 import torch
 
 # TODO remove act from all of these, it's not needed
@@ -93,3 +94,14 @@ def humanoid(act: torch.Tensor, next_obs: torch.Tensor):
 
     done = done[:, None]
     return done
+
+
+def tabletop_manipulation(act: torch.Tensor, next_obs: torch.Tensor) -> torch.Tensor:
+    """Termination function of `tabletop_manipulation` environment for a batch of
+    `next_obs`.
+    """
+    success = (
+        torch.linalg.norm(next_obs[:, :4] - next_obs[:, 6:-2], ord=2, dim=-1) < 0.02
+    )
+    success = success[:, None]
+    return success

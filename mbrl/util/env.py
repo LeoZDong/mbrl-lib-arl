@@ -58,6 +58,29 @@ def _legacy_make_env(
     elif "gym___" in cfg.overrides.env:
         env = gym.make(cfg.overrides.env.split("___")[1])
         term_fn, reward_fn = _get_term_and_reward_fn(cfg)
+    elif "earl__" in cfg.overrides.env:
+        import earl_benchmark
+
+        name = cfg.overrides.env.split("___")[1]
+        env_name, stage = name.split("--")
+        env_loader = earl_benchmark.EARLEnvs(
+            env_name=env_name,
+            reward_type="sparse",
+            reset_train_env_at_goal=False,
+        )
+        train_env, eval_env = env_loader.get_envs()
+        # TODO: Return additional EARL env information somewhere
+        term_fn, reward_fn = _get_term_and_reward_fn(cfg)
+
+        if stage == "train":
+            env = train_env
+        elif stage == "eval":
+            env = eval_env
+        else:
+            raise ValueError(
+                "EARL environment stage is expected to be 'train' or 'eval'!"
+            )
+
     else:
         import mbrl.env.mujoco_envs
 
@@ -139,8 +162,10 @@ class EnvHandler(ABC):
             string description of the environment where valid options are:
 
             - "dmcontrol___<domain>--<task>": a Deep-Mind Control suite environment
-                with the indicated domain and task (e.g., "dmcontrol___cheetah--run".
+                with the indicated domain and task (e.g., "dmcontrol___cheetah--run").
             - "gym___<env_name>": a Gym environment (e.g., "gym___HalfCheetah-v2").
+            - "earl___<env_name>--<stage_tag>": an EARL environment with the indicated
+                env name and stage (e.g. "earl___tabletop_manipulation--eval").
             - "cartpole_continuous": a continuous version of gym's Cartpole environment.
             - "pets_halfcheetah": the implementation of HalfCheetah used in Chua et al.,
                 PETS paper.

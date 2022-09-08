@@ -263,9 +263,13 @@ def train(
                 ) < cfg.overrides.sac_batch_size:
                     break  # only update every once in a while
 
-                log_tb = (i == cfg.overrides.num_sac_updates_per_step - 1) and (
-                    env_steps + 1
-                ) % cfg.overrides.log_tb_frequency_agent == 0
+                # Log tensorboard at the last agent update in this env step AND at a
+                # certain frequency.
+                log_tb = (
+                    "log_tb_frequency_agent" in cfg.overrides
+                    and (i == cfg.overrides.num_sac_updates_per_step - 1)
+                    and (env_steps + 1) % cfg.overrides.log_tb_frequency_agent == 0
+                )
                 agent.sac_agent.update_parameters(
                     which_buffer,
                     cfg.overrides.sac_batch_size,

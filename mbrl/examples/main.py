@@ -29,7 +29,14 @@ def run(cfg: omegaconf.DictConfig):
             cfg.overrides.env = "___".join([env_type, "--".join([env_name, "eval"])])
 
         test_env, *_ = mbrl.util.env.EnvHandler.make_env(cfg)
-        return mbpo.train(env, test_env, term_fn, cfg)
+
+        # Optionally use true reward function in model rollout
+        if cfg.overrides.get("learned_rewards", True):
+            return mbpo.train(env, test_env, term_fn, cfg)
+        else:
+            return mbpo.train(
+                env, test_env, term_fn, cfg, reward_fn_in_rollout=reward_fn
+            )
     if cfg.algorithm.name == "planet":
         return planet.train(env, cfg)
 

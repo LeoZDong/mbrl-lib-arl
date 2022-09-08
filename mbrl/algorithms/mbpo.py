@@ -111,7 +111,20 @@ def train(
     cfg: omegaconf.DictConfig,
     silent: bool = False,
     work_dir: Optional[str] = None,
+    reward_fn_in_rollout: Optional[mbrl.types.RewardFnType] = None,
 ) -> np.float32:
+    """Main training function for MBPO.
+    Args:
+        env (gym.Env): Environment to train the agent.
+        test_env (gym.Env): Environment to test (evaluate) the agent.
+        termination_fn (TermFnType): True termination function of the environment.
+        cfg (DictConfig): Configuration of the training session.
+        silent (bool): Whether to silent logger.
+        work_dir (Optional[str]): Working directory to save logs and other data. If none,
+            use the current working directory.
+        reward_fn (RewardFnType): True reward function of the environment to be used in
+            model rollout. If None, use predicted reward in rollout.
+    """
     # ------------------- Initialization -------------------
     debug_mode = cfg.get("debug_mode", False)
 
@@ -176,7 +189,11 @@ def train(
     # NOTE: `reward_fn` is passed in as `None`, so always predict the rewards
     # TODO: Add option to use true rewards here
     model_env = mbrl.models.ModelEnv(
-        env, dynamics_model, termination_fn, None, generator=torch_generator
+        env,
+        dynamics_model,
+        termination_fn,
+        reward_fn_in_rollout,
+        generator=torch_generator,
     )
     model_trainer = mbrl.models.ModelTrainer(
         dynamics_model,

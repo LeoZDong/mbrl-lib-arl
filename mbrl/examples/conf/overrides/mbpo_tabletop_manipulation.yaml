@@ -2,6 +2,7 @@
 env: "earl___tabletop_manipulation--eval"
 term_fn: "tabletop_manipulation"
 reward_fn: "tabletop_manipulation"
+learned_rewards: False
 
 log_tb_frequency_agent: 10
 

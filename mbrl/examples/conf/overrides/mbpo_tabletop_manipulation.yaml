@@ -4,10 +4,10 @@ term_fn: "tabletop_manipulation"
 reward_fn: "tabletop_manipulation"
 learned_rewards: False
 
-log_tb_frequency_agent: 10
+log_tb_frequency_agent: 100
 
-num_steps: 20000
-epoch_length: 250
+num_steps: 5000000
+epoch_length: 1000
 num_elites: 5
 patience: 5
 model_lr: 0.001

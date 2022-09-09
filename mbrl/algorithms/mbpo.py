@@ -186,8 +186,6 @@ def train(
     updates_made = 0
     env_steps = 0
     logger.env_steps = env_steps
-    # NOTE: `reward_fn` is passed in as `None`, so always predict the rewards
-    # TODO: Add option to use true rewards here
     model_env = mbrl.models.ModelEnv(
         env,
         dynamics_model,

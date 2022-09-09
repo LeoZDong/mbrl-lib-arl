@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Tuple, Union, cast
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import gym
 import gym.wrappers
@@ -48,7 +48,13 @@ def _handle_learned_rewards_and_seed(
 
 def _legacy_make_env(
     cfg: Union[omegaconf.ListConfig, omegaconf.DictConfig],
-) -> Tuple[gym.Env, mbrl.types.TermFnType, Optional[mbrl.types.RewardFnType]]:
+) -> Tuple[
+    gym.Env,
+    mbrl.types.TermFnType,
+    Optional[mbrl.types.RewardFnType],
+    Optional[Dict[str, Any]],
+]:
+    env_info = None
     if "dmcontrol___" in cfg.overrides.env:
         import mbrl.third_party.dmc2gym as dmc2gym
 
@@ -69,7 +75,15 @@ def _legacy_make_env(
             reset_train_env_at_goal=False,
         )
         train_env, eval_env = env_loader.get_envs()
-        # TODO: Return additional EARL env information somewhere
+
+        # Gather additional EARL env information
+        if env_loader.has_demos():
+            forward_demos, backward_demos = env_loader.get_demonstrations()
+            env_info = {
+                "forward_demos": forward_demos,
+                "backward_demos": backward_demos,
+            }
+
         term_fn, reward_fn = _get_term_and_reward_fn(cfg)
 
         if stage == "train":
@@ -119,7 +133,7 @@ def _legacy_make_env(
         )
 
     env, reward_fn = _handle_learned_rewards_and_seed(cfg, env, reward_fn)
-    return env, term_fn, reward_fn
+    return env, term_fn, reward_fn, env_info
 
 
 class Freeze(ABC):
@@ -150,7 +164,12 @@ class EnvHandler(ABC):
     @staticmethod
     def make_env(
         cfg: Union[Dict, omegaconf.ListConfig, omegaconf.DictConfig],
-    ) -> Tuple[gym.Env, mbrl.types.TermFnType, Optional[mbrl.types.RewardFnType]]:
+    ) -> Tuple[
+        gym.Env,
+        mbrl.types.TermFnType,
+        Optional[mbrl.types.RewardFnType],
+        Optional[Dict[str, Any]],
+    ]:
         """Creates an environment from a given OmegaConf configuration object.
 
         This method expects the configuration, ``cfg``,
@@ -195,9 +214,10 @@ class EnvHandler(ABC):
             cfg (omegaconf.DictConf): the configuration to use.
 
         Returns:
-            (tuple of env, termination function, reward function): returns the new environment,
-            the termination function to use, and the reward function to use (or ``None`` if
-            ``cfg.learned_rewards == True``).
+            (tuple of env, termination function, reward function, env info): returns the
+            new environment, the termination function to use, the reward function to use
+            (or ``None`` if ``cfg.learned_rewards == True``), and any additional env info
+            (such as demos in an EARL environment; ``None`` if no additional info).
         """
         # Handle the case where cfg is a dict
         cfg = omegaconf.OmegaConf.create(cfg)
@@ -211,7 +231,7 @@ class EnvHandler(ABC):
         )
         term_fn, reward_fn = _get_term_and_reward_fn(cfg)
         env, reward_fn = _handle_learned_rewards_and_seed(cfg, env, reward_fn)
-        return env, term_fn, reward_fn
+        return env, term_fn, reward_fn, None
 
     @staticmethod
     @abstractmethod

@@ -15,14 +15,14 @@ import mbrl.util.env
 
 @hydra.main(config_path="conf", config_name="main")
 def run(cfg: omegaconf.DictConfig):
-    env, term_fn, reward_fn = mbrl.util.env.EnvHandler.make_env(cfg)
+    env, term_fn, reward_fn, env_info = mbrl.util.env.EnvHandler.make_env(cfg)
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)
     if cfg.algorithm.name == "pets":
         return pets.train(env, term_fn, reward_fn, cfg)
     if cfg.algorithm.name == "mbpo":
-        # When creating the eval env, change the stage tag to be 'eval' in the string
-        # description of the environment.
+        # When creating the eval env for an EARL env, we need to change the stage tag to
+        # be 'eval' because train and eval give different environments.
         if "env" in cfg.overrides.keys() and "earl___" in cfg.overrides.env:
             env_type, name = cfg.overrides.env.split("___")
             env_name, _ = name.split("--")
@@ -30,12 +30,18 @@ def run(cfg: omegaconf.DictConfig):
 
         test_env, *_ = mbrl.util.env.EnvHandler.make_env(cfg)
 
+        # TODO: Add `env_info` to the train function of all algorithms
         # Optionally use true reward function in model rollout
         if cfg.overrides.get("learned_rewards", True):
-            return mbpo.train(env, test_env, term_fn, cfg)
+            return mbpo.train(env, test_env, term_fn, cfg, env_info=env_info)
         else:
             return mbpo.train(
-                env, test_env, term_fn, cfg, reward_fn_in_rollout=reward_fn
+                env,
+                test_env,
+                term_fn,
+                cfg,
+                env_info=env_info,
+                reward_fn_in_rollout=reward_fn,
             )
     if cfg.algorithm.name == "planet":
         return planet.train(env, cfg)

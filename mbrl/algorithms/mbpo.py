@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 import os
-from typing import Optional, Sequence, cast
+from typing import Any, Dict, Optional, Sequence, cast
 
 import gym
 import hydra.utils
@@ -111,6 +111,7 @@ def train(
     cfg: omegaconf.DictConfig,
     silent: bool = False,
     work_dir: Optional[str] = None,
+    env_info: Optional[Dict[str, Any]] = None,
     reward_fn_in_rollout: Optional[mbrl.types.RewardFnType] = None,
 ) -> np.float32:
     """Main training function for MBPO.
@@ -122,8 +123,10 @@ def train(
         silent (bool): Whether to silent logger.
         work_dir (Optional[str]): Working directory to save logs and other data. If none,
             use the current working directory.
-        reward_fn (RewardFnType): True reward function of the environment to be used in
-            model rollout. If None, use predicted reward in rollout.
+        env_info (Optional[Dict]): Additional information about the environment such as
+            demos in an EARL environment.
+        reward_fn (Optional[RewardFnType]): True reward function of the environment to
+            be used in model rollout. If None, use predicted reward in rollout.
     """
     # ------------------- Initialization -------------------
     debug_mode = cfg.get("debug_mode", False)
@@ -166,6 +169,24 @@ def train(
         action_type=dtype,
         reward_type=dtype,
     )
+
+    # Add demos to replay buffer if available
+    if env_info is not None and "forward_demos" in env_info.keys():
+        forward_demos = env_info["forward_demos"]
+        replay_buffer.add_batch(
+            obs=forward_demos["observations"],
+            action=forward_demos["actions"],
+            next_obs=forward_demos["next_observations"],
+            reward=forward_demos["rewards"].squeeze(-1),
+            done=forward_demos["terminals"].squeeze(-1),
+        )
+
+    # NOTE: Make sure that demos are propagated for all EARL envs (can be removed later)
+    if "env" in cfg.overrides.keys() and "earl___" in cfg.overrides.env:
+        assert len(
+            replay_buffer
+        ), "Demos are not added to replay buffer in an EARL env!"
+
     random_explore = cfg.algorithm.random_initial_explore
     mbrl.util.common.rollout_agent_trajectories(
         env,

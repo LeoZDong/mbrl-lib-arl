@@ -6,6 +6,7 @@ import hydra
 import numpy as np
 import omegaconf
 import torch
+from omegaconf import OmegaConf
 
 import mbrl.algorithms.mbpo as mbpo
 import mbrl.algorithms.pets as pets
@@ -15,7 +16,12 @@ import mbrl.util.env
 
 @hydra.main(config_path="conf", config_name="main")
 def run(cfg: omegaconf.DictConfig):
+    # Dump config yaml
+    with open("config.yaml", "w") as f:
+        OmegaConf.save(cfg, f)
+    # Create train env
     env, term_fn, reward_fn, env_info = mbrl.util.env.EnvHandler.make_env(cfg)
+    # Set seeds
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)
     if cfg.algorithm.name == "pets":
@@ -30,7 +36,6 @@ def run(cfg: omegaconf.DictConfig):
 
         test_env, *_ = mbrl.util.env.EnvHandler.make_env(cfg)
 
-        # TODO: Add `env_info` to the train function of all algorithms
         # Optionally use true reward function in model rollout
         if cfg.overrides.get("learned_rewards", True):
             return mbpo.train(env, test_env, term_fn, cfg, env_info=env_info)

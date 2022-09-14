@@ -14,6 +14,7 @@ import torch
 
 import mbrl.planning
 import mbrl.types
+from mbrl.env.earl_envs_wrapper import TerminateOnSuccessWrapper
 
 
 def _get_term_and_reward_fn(
@@ -89,7 +90,8 @@ def _legacy_make_env(
         if stage == "train":
             env = train_env
         elif stage == "eval":
-            env = eval_env
+            # Make the environment terminate when successful
+            env = TerminateOnSuccessWrapper(eval_env)
         else:
             raise ValueError(
                 "EARL environment stage is expected to be 'train' or 'eval'!"

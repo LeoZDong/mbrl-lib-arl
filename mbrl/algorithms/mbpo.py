@@ -295,6 +295,7 @@ def train(
                     logger,
                     reverse_mask=True,
                     log_tb=log_tb,
+                    termination_fn_for_mask_batch=termination_fn,
                 )
                 updates_made += 1
                 if not silent and updates_made % cfg.log_frequency_agent == 0:

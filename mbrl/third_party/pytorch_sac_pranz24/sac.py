@@ -81,7 +81,19 @@ class SAC(object):
         logger=None,
         reverse_mask=False,
         log_tb=False,
+        termination_fn_for_mask_batch=None,
     ):
+        """Update parameters for an SAC agent using data from a replay buffer `memory`.
+        Args:
+            termination_fn_for_mask_batch: If not None, use this function to calculate
+                termination status to use as `mask_batch` instead of the values directly
+                returned from the replay buffer.
+
+                The `mask_batch` returned from the replay buffer is a mix of `done=True`
+                by reaching the termination condition AND `done=True` by timeout. This
+                function is useful to disentangle them and just use the real termination
+                condition for `mask_batch`.
+        """
         # Sample a batch from memory
         (
             state_batch,
@@ -90,6 +102,16 @@ class SAC(object):
             reward_batch,
             mask_batch,
         ) = memory.sample(batch_size).astuple()
+
+        if termination_fn_for_mask_batch is not None:
+            mask_batch = (
+                termination_fn_for_mask_batch(
+                    torch.tensor(action_batch), torch.tensor(next_state_batch)
+                )
+                .squeeze(-1)
+                .cpu()
+                .numpy()
+            )
 
         state_batch = torch.FloatTensor(state_batch).to(self.device)
         next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)

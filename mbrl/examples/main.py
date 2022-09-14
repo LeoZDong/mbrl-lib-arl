@@ -6,7 +6,6 @@ import hydra
 import numpy as np
 import omegaconf
 import torch
-from omegaconf import OmegaConf
 
 import mbrl.algorithms.mbpo as mbpo
 import mbrl.algorithms.pets as pets
@@ -16,9 +15,6 @@ import mbrl.util.env
 
 @hydra.main(config_path="conf", config_name="main")
 def run(cfg: omegaconf.DictConfig):
-    # Dump config yaml
-    with open("config.yaml", "w") as f:
-        OmegaConf.save(cfg, f)
     # Create train env
     env, term_fn, reward_fn, env_info = mbrl.util.env.EnvHandler.make_env(cfg)
     # Set seeds

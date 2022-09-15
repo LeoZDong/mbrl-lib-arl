@@ -30,6 +30,12 @@ def run(cfg: omegaconf.DictConfig):
             env_name, _ = name.split("--")
             cfg.overrides.env = "___".join([env_type, "--".join([env_name, "eval"])])
 
+            if cfg.algorithm.num_eval_episodes <= 1:
+                print(
+                    f"Running EARL env but num_eval_episode={cfg.algorithm.num_eval_episodes}. "
+                    "Make num_eval_episode higher to get a meaningful success rate as eval episode reward!"
+                )
+
         test_env, *_ = mbrl.util.env.EnvHandler.make_env(cfg)
 
         # Optionally use true reward function in model rollout

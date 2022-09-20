@@ -79,12 +79,16 @@ class GaussianPolicy(nn.Module):
             self.action_scale = torch.tensor(1.0)
             self.action_bias = torch.tensor(0.0)
         else:
+            # NOTE: ARLBaselines does not have action scaling here but might have equiv
+            # operation elsewhere.
             high = np.array(action_space.high)
             low = np.array(action_space.low)
             self.action_scale = torch.FloatTensor((high - low) / 2.0)
             self.action_bias = torch.FloatTensor((high + low) / 2.0)
 
     def forward(self, state):
+        # NOTE: ARLBaselines has 3 linear layers instead of 2
+        # NOTE: After the first linear layer, ARLBaselines has a layer norm + tanh
         x = F.relu(self.linear1(state))
         x = F.relu(self.linear2(x))
         mean = self.mean_linear(x)
@@ -98,11 +102,14 @@ class GaussianPolicy(nn.Module):
         normal = Normal(mean, std)
         x_t = normal.rsample()  # for reparameterization trick (mean + std * N(0,1))
         y_t = torch.tanh(x_t)
+        # NOTE: ARLBaselines does not have action scale
         action = y_t * self.action_scale + self.action_bias
         log_prob = normal.log_prob(x_t)
         # Enforcing Action Bound
+        # NOTE: ARLBaselines does not have action scale
         log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + epsilon)
         log_prob = log_prob.sum(1, keepdim=True)
+        # NOTE: ARLBaselines does not have this operation
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean
 

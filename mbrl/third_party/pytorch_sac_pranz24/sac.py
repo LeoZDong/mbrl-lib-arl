@@ -38,6 +38,7 @@ class SAC(object):
         if self.policy_type == "Gaussian":
             # Target Entropy = −dim(A) (e.g. , -6 for HalfCheetah-v2) as given in the paper
             if self.automatic_entropy_tuning is True:
+                # NOTE: ARLBaselines has target_entropy be -dim(A) / 2 instead
                 if args.target_entropy is None:
                     self.target_entropy = -torch.prod(
                         torch.Tensor(action_space.shape).to(self.device)
@@ -142,6 +143,7 @@ class SAC(object):
         qf2_loss = F.mse_loss(
             qf2, next_q_value
         )  # JQ = 𝔼(st,at)~D[0.5(Q1(st,at) - r(st,at) - γ(𝔼st+1~p[V(st+1)]))^2]
+        # NOTE: ARLBaselines has 0.5 * qf1_loss + qf2_loss
         qf_loss = qf1_loss + qf2_loss
 
         self.critic_optim.zero_grad()

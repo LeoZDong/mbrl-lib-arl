@@ -66,7 +66,12 @@ class GaussianPolicy(nn.Module):
     def __init__(self, num_inputs, num_actions, hidden_dim, action_space=None):
         super(GaussianPolicy, self).__init__()
 
-        self.linear1 = nn.Linear(num_inputs, hidden_dim)
+        # self.linear1 = nn.Linear(num_inputs, hidden_dim)
+        # self.linear2 = nn.Linear(hidden_dim, hidden_dim)
+        # NOTE: (Experimental) Use layer norm and feature dim
+        self.feature_dim = 50
+        self.linear0 = nn.Linear(num_inputs, self.feature_dim)
+        self.linear1 = nn.Linear(self.feature_dim, hidden_dim)
         self.linear2 = nn.Linear(hidden_dim, hidden_dim)
 
         self.mean_linear = nn.Linear(hidden_dim, num_actions)
@@ -89,8 +94,16 @@ class GaussianPolicy(nn.Module):
     def forward(self, state):
         # NOTE: ARLBaselines has 3 linear layers instead of 2
         # NOTE: After the first linear layer, ARLBaselines has a layer norm + tanh
-        x = F.relu(self.linear1(state))
+        # x = F.relu(self.linear1(state))
+        # x = F.relu(self.linear2(x))
+
+        # NOTE: (Experimental) Use layer norm and feature dim
+        x = torch.tanh(
+            F.layer_norm(self.linear0(state), normalized_shape=(self.feature_dim,))
+        )
+        x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
+
         mean = self.mean_linear(x)
         log_std = self.log_std_linear(x)
         log_std = torch.clamp(log_std, min=LOG_SIG_MIN, max=LOG_SIG_MAX)
